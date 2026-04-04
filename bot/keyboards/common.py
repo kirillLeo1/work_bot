@@ -18,8 +18,14 @@ def admin_main_menu() -> ReplyKeyboardMarkup:
 
 def section_categories_keyboard(section: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    for category in MAIN_SECTIONS.get(section, []):
-        builder.button(text=category, callback_data=f"category:{section}:{category}")
+    section_names = list(MAIN_SECTIONS.keys())
+    try:
+        section_index = section_names.index(section)
+    except ValueError:
+        section_index = -1
+
+    for category_index, category in enumerate(MAIN_SECTIONS.get(section, [])):
+        builder.button(text=category, callback_data=f"cat:{section_index}:{category_index}")
     builder.adjust(1)
     return builder.as_markup()
 

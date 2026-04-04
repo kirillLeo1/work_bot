@@ -37,14 +37,24 @@ async def section_selected(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.callback_query(F.data.startswith("category:"))
+@router.callback_query(F.data.startswith("cat:"))
 async def category_selected(callback: CallbackQuery, state: FSMContext) -> None:
     user = await get_user_by_telegram_id(callback.from_user.id)
     if not user or user.is_admin:
         await callback.answer()
         return
 
-    _, section, category = callback.data.split(":", 2)
+    try:
+        _, section_index_str, category_index_str = callback.data.split(":", 2)
+        section_index = int(section_index_str)
+        category_index = int(category_index_str)
+        section_names = list(MAIN_SECTIONS.keys())
+        section = section_names[section_index]
+        category = MAIN_SECTIONS[section][category_index]
+    except (ValueError, IndexError, KeyError):
+        await callback.answer("Помилка кнопки. Спробуй ще раз.", show_alert=True)
+        return
+
     await state.update_data(section=section, category=category)
     await state.set_state(SubmissionState.waiting_for_text)
     await callback.message.answer(
