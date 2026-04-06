@@ -35,7 +35,11 @@ async def new_submissions(message: Message) -> None:
         await message.answer("Нових звернень зараз немає.")
         return
     for item in submissions:
-        await message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
+        item = await get_submission(item.id)
+        if item.photo_file_id:
+            await message.answer_photo(item.photo_file_id, caption=submission_text(item), reply_markup=admin_submission_actions(item.id))
+        else:
+            await message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
 
 
 @router.message(F.text == "📊 Всі звернення")
@@ -48,7 +52,11 @@ async def all_submissions(message: Message) -> None:
         await message.answer("Поки звернень немає.")
         return
     for item in submissions:
-        await message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
+        item = await get_submission(item.id)
+        if item.photo_file_id:
+            await message.answer_photo(item.photo_file_id, caption=submission_text(item), reply_markup=admin_submission_actions(item.id))
+        else:
+            await message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
 
 
 @router.message(F.text == "👷 Працівники")
@@ -77,7 +85,10 @@ async def worker_history(callback: CallbackQuery) -> None:
     else:
         for item in submissions:
             item = await get_submission(item.id)
-            await callback.message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
+            if item.photo_file_id:
+                await callback.message.answer_photo(item.photo_file_id, caption=submission_text(item), reply_markup=admin_submission_actions(item.id))
+            else:
+                await callback.message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
     await callback.answer()
 
 
@@ -105,7 +116,7 @@ async def send_reply(message: Message, state: FSMContext) -> None:
     submission = await get_submission(submission_id)
     await state.clear()
 
-    await message.answer("Відповідь збережено і відправлено працівнику.")
+    await message.answer("Відповідь збережено і відправлено користувачу.")
     await message.bot.send_message(
         submission.user.telegram_id,
         (

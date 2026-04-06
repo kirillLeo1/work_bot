@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, func, inspect, text
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -35,6 +35,8 @@ class Submission(Base):
     section: Mapped[str] = mapped_column(String(255), index=True)
     category: Mapped[str | None] = mapped_column(String(255), nullable=True)
     text: Mapped[str] = mapped_column(Text)
+    photo_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    photo_unique_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="new", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
@@ -64,11 +66,31 @@ def setup_database(database_url: str) -> None:
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
+async def _ensure_submission_columns() -> None:
+    if engine is None:
+        raise RuntimeError("Database is not initialized")
+
+    async with engine.begin() as conn:
+        def _has_column(sync_conn, table_name: str, column_name: str) -> bool:
+            inspector = inspect(sync_conn)
+            columns = {column["name"] for column in inspector.get_columns(table_name)}
+            return column_name in columns
+
+        has_photo_file_id = await conn.run_sync(_has_column, "submissions", "photo_file_id")
+        if not has_photo_file_id:
+            await conn.execute(text("ALTER TABLE submissions ADD COLUMN photo_file_id VARCHAR(255) NULL"))
+
+        has_photo_unique_id = await conn.run_sync(_has_column, "submissions", "photo_unique_id")
+        if not has_photo_unique_id:
+            await conn.execute(text("ALTER TABLE submissions ADD COLUMN photo_unique_id VARCHAR(255) NULL"))
+
+
 async def create_tables() -> None:
     if engine is None:
         raise RuntimeError("Database is not initialized")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await _ensure_submission_columns()
 
 
 @asynccontextmanager

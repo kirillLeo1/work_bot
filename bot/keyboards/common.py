@@ -3,16 +3,36 @@ from __future__ import annotations
 from aiogram.types import InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.constants import ADMIN_MENU, MAIN_SECTIONS
+from bot.constants import (
+    ADMIN_PANEL_MENU,
+    ADMIN_SWITCH_TO_PANEL,
+    MAIN_SECTIONS,
+    SKIP_PHOTO_TEXT,
+)
 
 
 def worker_main_menu() -> ReplyKeyboardMarkup:
-    buttons = [[KeyboardButton(text=title)] for title in MAIN_SECTIONS.keys()]
+    buttons = []
+    section_buttons = [KeyboardButton(text=title) for title in MAIN_SECTIONS.keys()]
+    for i in range(0, len(section_buttons), 2):
+        buttons.append(section_buttons[i:i + 2])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
 def admin_main_menu() -> ReplyKeyboardMarkup:
-    buttons = [[KeyboardButton(text=title)] for title in ADMIN_MENU]
+    buttons = []
+    panel_buttons = [KeyboardButton(text=title) for title in ADMIN_PANEL_MENU]
+    for i in range(0, len(panel_buttons), 2):
+        buttons.append(panel_buttons[i:i + 2])
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
+
+def admin_reports_menu() -> ReplyKeyboardMarkup:
+    buttons = []
+    section_buttons = [KeyboardButton(text=title) for title in MAIN_SECTIONS.keys()]
+    for i in range(0, len(section_buttons), 2):
+        buttons.append(section_buttons[i:i + 2])
+    buttons.append([KeyboardButton(text=ADMIN_SWITCH_TO_PANEL)])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
@@ -34,6 +54,14 @@ def cancel_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="❌ Скасувати", callback_data="cancel_action")
     return builder.as_markup()
+
+
+def photo_skip_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=SKIP_PHOTO_TEXT)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
 
 
 def admin_submission_actions(submission_id: int) -> InlineKeyboardMarkup:

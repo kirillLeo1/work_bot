@@ -6,7 +6,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot.config import Settings
-from bot.keyboards.common import admin_main_menu, worker_main_menu
+from bot.constants import ADMIN_SWITCH_TO_PANEL, ADMIN_SWITCH_TO_REPORTS
+from bot.keyboards.common import admin_main_menu, admin_reports_menu, worker_main_menu
 from bot.services.repository import get_user_by_telegram_id
 from bot.states import RegistrationState
 
@@ -76,3 +77,19 @@ async def menu_handler(message: Message) -> None:
         await message.answer("Меню керівника:", reply_markup=admin_main_menu())
     else:
         await message.answer("Меню працівника:", reply_markup=worker_main_menu())
+
+
+@router.message(F.text == ADMIN_SWITCH_TO_REPORTS)
+async def switch_admin_to_reports(message: Message) -> None:
+    user = await get_user_by_telegram_id(message.from_user.id)
+    if not user or not user.is_admin:
+        return
+    await message.answer("Режим звітів увімкнено. Обирай розділ.", reply_markup=admin_reports_menu())
+
+
+@router.message(F.text == ADMIN_SWITCH_TO_PANEL)
+async def switch_admin_to_panel(message: Message) -> None:
+    user = await get_user_by_telegram_id(message.from_user.id)
+    if not user or not user.is_admin:
+        return
+    await message.answer("Повернув у адмін-панель.", reply_markup=admin_main_menu())

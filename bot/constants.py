@@ -31,8 +31,13 @@ MAIN_SECTIONS: dict[str, list[str]] = {
     "Проблеми виробництва": [],
 }
 
-ADMIN_MENU = [
+ADMIN_PANEL_MENU = [
     "📥 Нові звернення",
     "👷 Працівники",
     "📊 Всі звернення",
+    "📝 Режим звітів",
 ]
+
+ADMIN_SWITCH_TO_PANEL = "🛠 Адмін-панель"
+ADMIN_SWITCH_TO_REPORTS = "📝 Режим звітів"
+SKIP_PHOTO_TEXT = "⏭ Пропустити фото"

@@ -9,6 +9,7 @@ class RegistrationState(StatesGroup):
 
 class SubmissionState(StatesGroup):
     waiting_for_text = State()
+    waiting_for_photo = State()
 
 
 class AdminReplyState(StatesGroup):

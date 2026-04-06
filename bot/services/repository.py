@@ -44,9 +44,23 @@ async def create_or_update_user(
         return user
 
 
-async def create_submission(user_id: int, section: str, category: str | None, text: str) -> Submission:
+async def create_submission(
+    user_id: int,
+    section: str,
+    category: str | None,
+    text: str,
+    photo_file_id: str | None = None,
+    photo_unique_id: str | None = None,
+) -> Submission:
     async with get_session() as session:
-        submission = Submission(user_id=user_id, section=section, category=category, text=text)
+        submission = Submission(
+            user_id=user_id,
+            section=section,
+            category=category,
+            text=text,
+            photo_file_id=photo_file_id,
+            photo_unique_id=photo_unique_id,
+        )
         session.add(submission)
         await session.commit()
         await session.refresh(submission)
