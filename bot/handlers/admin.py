@@ -4,17 +4,24 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.keyboards.common import admin_submission_actions, workers_list_keyboard
+from bot.keyboards.common import (
+    admin_submission_actions,
+    new_submission_dates_keyboard,
+    workers_list_keyboard,
+)
 from bot.services.repository import (
     add_reply,
     close_submission,
     get_submission,
     get_user_by_telegram_id,
     get_worker_submissions,
+    list_new_submission_date_keys,
+    list_new_submissions_by_date_key,
     list_recent_submissions,
     list_workers,
 )
 from bot.states import AdminReplyState
+from bot.utils.datetime_utils import format_date_key
 from bot.utils.formatters import submission_text, worker_label
 
 router = Router()
@@ -30,16 +37,45 @@ async def new_submissions(message: Message) -> None:
     admin = await ensure_admin(message.from_user.id)
     if not admin:
         return
-    submissions = await list_recent_submissions(limit=20, only_new=True)
-    if not submissions:
+    date_keys = await list_new_submission_date_keys()
+    if not date_keys:
         await message.answer("Нових звернень зараз немає.")
         return
+    await message.answer(
+        "Оберіть дату, за яку показати нові звернення:",
+        reply_markup=new_submission_dates_keyboard(date_keys),
+    )
+
+
+@router.callback_query(F.data.startswith("newdate:"))
+async def new_submissions_by_date(callback: CallbackQuery) -> None:
+    admin = await ensure_admin(callback.from_user.id)
+    if not admin:
+        await callback.answer()
+        return
+
+    date_key = callback.data.split(":", 1)[1]
+    submissions = await list_new_submissions_by_date_key(date_key)
+    if not submissions:
+        await callback.message.answer(f"За {format_date_key(date_key)} нових звернень немає.")
+        await callback.answer()
+        return
+
+    await callback.message.answer(f"<b>Нові звернення за {format_date_key(date_key)}</b>")
     for item in submissions:
         item = await get_submission(item.id)
         if item.photo_file_id:
-            await message.answer_photo(item.photo_file_id, caption=submission_text(item), reply_markup=admin_submission_actions(item.id))
+            await callback.message.answer_photo(
+                item.photo_file_id,
+                caption=submission_text(item),
+                reply_markup=admin_submission_actions(item.id),
+            )
         else:
-            await message.answer(submission_text(item), reply_markup=admin_submission_actions(item.id))
+            await callback.message.answer(
+                submission_text(item),
+                reply_markup=admin_submission_actions(item.id),
+            )
+    await callback.answer()
 
 
 @router.message(F.text == "📊 Всі звернення")

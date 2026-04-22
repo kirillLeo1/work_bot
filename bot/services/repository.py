@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from sqlalchemy import Select, desc, select, update
+from sqlalchemy import Select, asc, desc, select, update
 from sqlalchemy.orm import selectinload
 
 from bot.db import Reply, Submission, User, get_session
+from bot.utils.datetime_utils import kyiv_date_key
 
 
 async def get_user_by_telegram_id(telegram_id: int) -> User | None:
@@ -98,13 +99,53 @@ async def close_submission(submission_id: int) -> None:
         await session.commit()
 
 
-async def list_recent_submissions(limit: int = 20, only_new: bool = False) -> list[Submission]:
+async def list_recent_submissions(
+    limit: int = 20,
+    only_new: bool = False,
+    oldest_first: bool = False,
+) -> list[Submission]:
     async with get_session() as session:
-        stmt = select(Submission).options(selectinload(Submission.user)).order_by(desc(Submission.created_at)).limit(limit)
+        order_by = asc(Submission.created_at) if oldest_first else desc(Submission.created_at)
+        stmt = select(Submission).options(selectinload(Submission.user)).order_by(order_by).limit(limit)
         if only_new:
             stmt = stmt.where(Submission.status == "new")
         result = await session.execute(stmt)
         return list(result.scalars().all())
+
+
+async def list_new_submission_date_keys(limit: int = 500) -> list[str]:
+    async with get_session() as session:
+        result = await session.execute(
+            select(Submission)
+            .where(Submission.status == "new")
+            .options(selectinload(Submission.user))
+            .order_by(asc(Submission.created_at))
+            .limit(limit)
+        )
+        submissions = list(result.scalars().all())
+
+    date_keys: list[str] = []
+    seen: set[str] = set()
+    for item in submissions:
+        date_key = kyiv_date_key(item.created_at)
+        if date_key and date_key not in seen:
+            seen.add(date_key)
+            date_keys.append(date_key)
+    return date_keys
+
+
+async def list_new_submissions_by_date_key(date_key: str, limit: int = 500) -> list[Submission]:
+    async with get_session() as session:
+        result = await session.execute(
+            select(Submission)
+            .where(Submission.status == "new")
+            .options(selectinload(Submission.user))
+            .order_by(asc(Submission.created_at))
+            .limit(limit)
+        )
+        submissions = list(result.scalars().all())
+
+    return [item for item in submissions if kyiv_date_key(item.created_at) == date_key]
 
 
 async def list_workers() -> list[User]:
